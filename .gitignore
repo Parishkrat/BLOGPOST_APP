@@ -1,0 +1,9 @@
+# Ignore everything
+/*
+
+# Allow src folder
+!src/
+!src/**
+
+# Allow gitignore itself
+!.gitignore
