@@ -1,5 +1,10 @@
 import Comment from "../Model/ComentSchema.js";
 import Blog from "../Model/blogpostSchema.js";
+import {
+  emitNewComment,
+  emitCommentUpdate,
+  emitCommentDelete,
+} from "../websocket.js";
 
 // Create comment
 export const createComment = async (req, res) => {
@@ -23,11 +28,18 @@ export const createComment = async (req, res) => {
       });
     }
 
+    // CREATE comment FIRST
     const comment = await Comment.create({
       text,
       commenter: req.userId,
       blogPost: blogId,
     });
+
+    // THEN populate commenter details for real-time update
+    await comment.populate("commenter", "username email");
+
+    // THEN emit real-time event to all users viewing this blog
+    emitNewComment(blogId, comment);
 
     return res.status(201).json({
       success: true,
@@ -90,6 +102,12 @@ export const updateComment = async (req, res) => {
     comment.text = req.body.text || comment.text;
     await comment.save();
 
+    // Populate commenter details for real-time update
+    await comment.populate("commenter", "username email");
+
+    // Emit real-time event to all users viewing this blog
+    emitCommentUpdate(comment.blogPost, comment);
+
     return res.status(200).json({
       success: true,
       comment,
@@ -126,7 +144,14 @@ export const deleteComment = async (req, res) => {
       });
     }
 
+    // Save these BEFORE deleting
+    const blogId = comment.blogPost;
+    const commentId = comment._id;
+
     await comment.deleteOne();
+
+    // Emit real-time event to all users viewing this blog
+    emitCommentDelete(blogId, commentId);
 
     return res.status(200).json({
       success: true,

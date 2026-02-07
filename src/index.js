@@ -6,7 +6,12 @@ import blogRoute from "./Router/blogpostRoute.js";
 import UserRoute from "./Router/UserRoute.js";
 import cookieParser from "cookie-parser";
 import commentRoute from "./Router/commentRoute.js";
+import { createServer } from "http";
+import { initializeWebSocket } from "./websocket.js";
+
 const app = express();
+const httpServer = createServer(app);
+
 dotenv.config();
 
 app.use(bodyParser.json());
@@ -19,8 +24,12 @@ const Mongo_db = process.env.MONGODB_URL;
 mongoose
   .connect(Mongo_db)
   .then(() => {
-    app.listen(Port, () => {
+    //Initialize webSocket
+    initializeWebSocket(httpServer);
+
+    httpServer.listen(Port, () => {
       console.log(`Port is running from server ${Port}`);
+      console.log(`WebSocket server is ready`);
     });
 
     console.log("MOngodb is connected");
